@@ -12,7 +12,7 @@ DIR=`dirname $0`
 #DIR=`realpath $DIR`
 DIR=`readlink -f $DIR`
 BUILDARCH=`uname -m`
-REQUIRED_PACKAGES="rpmdevtools rpm-build screen lldpad mstflint ipmitool pciutils mdadm dosfstools usbutils bind-utils psmisc nmap-ncat ethtool kexec-tools"
+REQUIRED_PACKAGES="rsyslog rpmdevtools rpm-build screen lldpad mstflint ipmitool pciutils mdadm dosfstools usbutils bind-utils psmisc nmap-ncat ethtool kexec-tools"
 
 # Install required packages
 for required_package in $REQUIRED_PACKAGES; do
@@ -48,125 +48,9 @@ else
     DRACUTMODDIR=/usr/lib/dracut/modules.d/97xcat
 fi
 
-# get all modules in the kernel
 cd $DIR
-KERVER=`uname -r`
-
-echo "#!/bin/bash" > ./installkernel
-for line in `cat /lib/modules/$KERVER/modules.dep | awk -F: '{print \$1}'`; do
-    basename $line >> ./installkernel;
-done
-sed -i 's/\(.*\)\.ko.*/instmods \1/g' ./installkernel
-chmod +x ./installkernel
-cd -
-
 mkdir -p $DRACUTMODDIR
-cp $DIR/* $DRACUTMODDIR
-# Remove the ipr(IBM Power RAID) stuff when building on x86_64
-if [ $BUILDARCH = "x86_64" ]; then
-    sed -i 's/dracut_install \/lib64\/libform.so.5//' $DRACUTMODDIR/install
-    sed -i 's/\/lib\/libtinfo.so.5.7/\/lib64\/libtinfo.so.5.7/' $DRACUTMODDIR/install
-    sed -i 's/\/lib64\/libpanel.so.5//' $DRACUTMODDIR/install
-    sed -i 's/\/lib64\/libmenu.so.5//' $DRACUTMODDIR/install
-    sed -i 's/\/lib64\/libsysfs.so.2//' $DRACUTMODDIR/install
-    sed -i '/\/usr\/sbin\/iprconfig/ d' $DRACUTMODDIR/install
-    sed -i '/hwdb.bin/ d' $DRACUTMODDIR/install
-    sed -i 's/instmods ipr//' $DRACUTMODDIR/installkernel
-    sed -i 's/ mkreiserfs//' $DRACUTMODDIR/install
-    sed -i 's/ reiserfstune//' $DRACUTMODDIR/install
-    sed -i 's/ vconfig//' $DRACUTMODDIR/install
-	sed -i 's/mkfs.btrfs//' $DRACUTMODDIR/install
-    sed -i 's/\/lib\/terminfo\/l\/linux/\/usr\/share\/terminfo\/l\/linux/g' $DRACUTMODDIR/install
-    sed -i 's/\/lib\/terminfo\/v\/vt100/\/usr\/share\/terminfo\/v\/vt100/g' $DRACUTMODDIR/install
-	sed -i 's/mkfs.btrfs//' $DRACUTMODDIR/install
-fi
-if [ "$HOSTOS" = "mcp" ]; then
-	#Special handlings for MCP PPC64 platform building.
-	if [ $BUILDARCH = "ppc64" ]; then
-		sed -i 's/dracut_install efibootmgr//' $DRACUTMODDIR/install
-		sed -i 's/dracut_install dmidecode \/usr\/lib64\/libstdc++.so.5//' $DRACUTMODDIR/install
-		sed -i 's/dmidecode//' $DRACUTMODDIR/install
-		sed -i 's/\/lib\/ld-linux.so.2/\/usr\/lib64\/ld-2.17.so/' $DRACUTMODDIR/install
-		sed -i 's/\/lib64\/libsysfs.so.2//' $DRACUTMODDIR/install
-		sed -i '/\/usr\/sbin\/iprconfig/ d' $DRACUTMODDIR/install
-	else
-		sed -i 's/\/lib\/ld-linux.so.2/\/usr\/lib64\/ld-linux-x86-64.so.2/' $DRACUTMODDIR/install
-	fi
-	sed -i 's/mkfs.btrfs//' $DRACUTMODDIR/install
-	sed -i 's/\/etc\/redhat-release/\/etc\/base-release \/etc\/system-release/' $DRACUTMODDIR/install
-	sed -i 's/btrfs//' $DRACUTMODDIR/installkernel
-
-	sed -i 's/\/usr\/bin\/basename/\/bin\/basename/' $DRACUTMODDIR/install
-
-	sed -i 's/\/lib64\/libnss_dns-2.12.so/\/usr\/lib64\/libnss_dns-2.17.so/' $DRACUTMODDIR/install
-	sed -i 's/\/lib64\/libnss_dns.so.2/\/usr\/lib64\/libnss_dns.so.2/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libc.so.6/\/usr\/lib64\/libc.so.6/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libdl.so.2/\/usr\/lib64\/libdl.so.2/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libm.so.6/\/usr\/lib64\/libm.so.6/' $DRACUTMODDIR/install
-	sed -i 's/\/usr\/lib\/libstdc++.so.6.0.13/\/usr\/lib64\/libstdc++.so.6.0.19/' $DRACUTMODDIR/install
-	sed -i 's/\/usr\/lib64\/libstdc++.so.5//' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libpthread.so.0/\/usr\/lib64\/libpthread.so.0/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libncurses.so.5.7/\/usr\/lib64\/libncurses.so.5.9/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libgcc_s.so.1/\/usr\/lib64\/libgcc_s.so.1/' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/libtinfo.so.5.7/\/usr\/lib64\/libtinfo.so.5.9/' $DRACUTMODDIR/install
-	sed -i 's/\/usr\/lib64\/libsasl2.so.2/\/usr\/lib64\/libsasl2.so.3/' $DRACUTMODDIR/install
-
-	sed -i 's/\/lib\/terminfo\/l\/linux/\/usr\/share\/terminfo\/l\/linux/g' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/terminfo\/v\/vt100/\/usr\/share\/terminfo\/v\/vt100/g' $DRACUTMODDIR/install
-
-	# these are needed for sysclone, but are not yet in mcp
-	sed -i 's/ bc//' $DRACUTMODDIR/install
-	sed -i 's/ mkdosfs//' $DRACUTMODDIR/install
-	sed -i 's/ rsync//' $DRACUTMODDIR/install
-	sed -i 's/ kexec//' $DRACUTMODDIR/install
-	sed -i 's/ klogd//' $DRACUTMODDIR/install
-	sed -i 's/ mdadm//' $DRACUTMODDIR/install
-	sed -i 's/ mkfs\.xfs//' $DRACUTMODDIR/install
-	sed -i 's/ xfs_db//' $DRACUTMODDIR/install
-	sed -i 's/ mkreiserfs//' $DRACUTMODDIR/install
-	sed -i 's/ reiserfstune//' $DRACUTMODDIR/install
-	sed -i 's/ vconfig//' $DRACUTMODDIR/install
-	sed -i 's/ killall//' $DRACUTMODDIR/install
-
-	# These timezone files are not available in the latest mcp build
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Asia\/Riyadh87//' $DRACUTMODDIR/install
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Asia\/Riyadh88//' $DRACUTMODDIR/install
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Asia\/Riyadh89//' $DRACUTMODDIR/install
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Mideast\/Riyadh87//' $DRACUTMODDIR/install
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Mideast\/Riyadh88//' $DRACUTMODDIR/install
-	sed -i 's/dracut_install \/usr\/share\/zoneinfo\/posix\/Mideast\/Riyadh89//' $DRACUTMODDIR/install
-
-# For ppc64 platform, needs to remove some files,
-# # and some files are in different directories
-elif [ $BUILDARCH = "ppc64" ]; then
-	if [ "$HOSTOS" = "Pegas1.0" ]; then
-		sed -i 's/ mkreiserfs//' $DRACUTMODDIR/install
-		sed -i 's/ reiserfstune//' $DRACUTMODDIR/install
-		sed -i 's/ vconfig//' $DRACUTMODDIR/install
-	fi
-	sed -i 's/ efibootmgr//' $DRACUTMODDIR/install
-	sed -i 's/ dmidecode//' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/terminfo\/l\/linux/\/usr\/share\/terminfo\/l\/linux/g' $DRACUTMODDIR/install
-	sed -i 's/\/lib\/terminfo\/v\/vt100/\/usr\/share\/terminfo\/v\/vt100/g' $DRACUTMODDIR/install
-fi
-
-libnss_pkgname=`find /usr/lib64/ -name libnss_dns-2*.so | xargs basename`
-sed -i "s/\/lib64\/libnss_dns-2.12.so/\/usr\/lib64\/$libnss_pkgname/g" $DRACUTMODDIR/install
-sed -i 's/\/lib64\/libnss_dns.so.2/\/usr\/lib64\/libnss_dns.so.2/' $DRACUTMODDIR/install
-
-# Based on cmdlist_check, make sure the commands are included in $DRACUTMODDIR/install
-if [ -e "${DRACUTMODDIR}/cmdlist_check" ]; then
-    miss_cmd=0
-    for cmd in `cat ${DRACUTMODDIR}/cmdlist_check`; do
-        if ! grep $cmd $DRACUTMODDIR/install; then
-            echo "ERROR: The required $cmd is not included in the install file to build the Genesis base package"
-            miss_cmd=1
-        fi
-    done
-    if [ "$miss_cmd" = 1 ]; then
-        exit 1
-    fi
-fi
+cp -a 97xcat/* $DRACUTMODDIR
 
 mkdir -p /tmp/xcatgenesis.$$/opt/xcat/share/xcat/netboot/genesis/$BUILDARCH/fs
 
@@ -180,9 +64,9 @@ else
 fi
 # On Fedora 20 ppc64, dracut uses host-only mode by default
 if [ $BUILDARCH = "ppc64" ]; then
-    dracut -m "xcat base" -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
+    dracut -a "xcat" -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
 else
-    dracut -m "xcat base" --no-early-microcode -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
+    dracut -a "xcat" --no-early-microcode -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
 fi
 
 if [ $? -ne 0 ]; then
