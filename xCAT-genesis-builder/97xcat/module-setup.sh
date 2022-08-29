@@ -11,10 +11,21 @@ check() {
 # called by dracut
 depends() {
     echo \
-        "base systemd-network-management network kernel-modules " \
-        "kernel-network-modules kernel-modules-extra terminfo syslog nfs " \
-        "dracut-systemd systemd-networkd systemd-timesyncd systemd-modules-load"
+        base udev-rules dracut-systemd systemd-network-management systemd-udevd \
+        kernel-modules kernel-network-modules kernel-modules-extra terminfo \
+        syslog nfs
     return 0
+}
+
+#called by dracut
+installkernel() {
+    local _kver=$(uname -r)
+    if [ -e "/lib/modules/$_kver/modules.dep" ]; then
+        for line in $(cat "/lib/modules/$_kver/modules.dep" |awk -F: '{print $1}'); do
+            kmod=$(basename $line)
+            instmods $kmod
+        done
+    fi
 }
 
 # called by dracut
