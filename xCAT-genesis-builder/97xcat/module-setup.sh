@@ -11,7 +11,8 @@ check() {
 # called by dracut
 depends() {
     echo \
-        "network kernel-network-modules kernel-modules-extra terminfo syslog nfs " \
+        "base systemd-network-management network kernel-modules " \
+        "kernel-network-modules kernel-modules-extra terminfo syslog nfs " \
         "dracut-systemd systemd-networkd systemd-timesyncd systemd-modules-load"
     return 0
 }
