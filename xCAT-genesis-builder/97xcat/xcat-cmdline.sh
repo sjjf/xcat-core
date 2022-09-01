@@ -9,3 +9,6 @@ xcat_ip=${xcatd%:*}
 
 echo "syslog.server=$xcat_ip" >>/etc/cmdline.d/xcat-cmdline.conf
 
+# this is necessary for dracut to proceed beyond this hook.
+root='initramfs'
+rootok=1
