@@ -11,8 +11,8 @@ check() {
 # called by dracut
 depends() {
     echo \
-        base network network-legacy kernel-modules kernel-network-modules \
-        kernel-modules-extra terminfo syslog nfs
+        network-legacy network kernel-modules kernel-network-modules \
+        kernel-modules-extra terminfo syslog nfs base
     return 0
 }
 
