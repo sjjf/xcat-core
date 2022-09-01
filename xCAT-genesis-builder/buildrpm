@@ -15,11 +15,16 @@ BUILDARCH=`uname -m`
 REQUIRED_PACKAGES="vconfig rsyslog rpmdevtools rpm-build screen lldpad mstflint ipmitool pciutils mdadm dosfstools usbutils bind-utils psmisc nmap-ncat ethtool kexec-tools"
 
 # Install required packages
+pkglist=$(rpm -qa)
 for required_package in $REQUIRED_PACKAGES; do
-    yum -y install $required_package
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Can not install required package $required_package, make sure EPEL repository is configured"
-        exit 1
+    if ! echo $pkglist |grep $required_package &>/dev/null; then
+        yum -y install $required_package
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Can not install required package $required_package, make sure EPEL repository is configured"
+            exit 1
+        fi
+    else
+        echo "$required_package already installed"
     fi
 done
 
