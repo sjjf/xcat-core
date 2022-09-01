@@ -11,9 +11,8 @@ check() {
 # called by dracut
 depends() {
     echo \
-        base udev-rules dracut-systemd systemd-network-management systemd-udevd \
-        kernel-modules kernel-network-modules kernel-modules-extra terminfo \
-        syslog nfs
+        base network systemd-networkd kernel-modules kernel-network-modules \
+        kernel-modules-extra terminfo syslog nfs
     return 0
 }
 
@@ -610,7 +609,6 @@ install() {
 
     inst "$moddir/xcatroot" "/sbin/xcatroot"
     inst "$moddir/dhclient.conf" "/etc/dhclient.conf"
-    inst "$moddir/dhclient-script" "/sbin/dhclient-script"
     
     inst_hook cmdline 10 "$moddir/xcat-cmdline.sh"
     inst_hook pre-mount 10 "$moddir/xcat-pre-mount.sh"
