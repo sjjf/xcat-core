@@ -69,9 +69,9 @@ else
 fi
 # On Fedora 20 ppc64, dracut uses host-only mode by default
 if [ $BUILDARCH = "ppc64" ]; then
-    dracut -a "xcat" -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
+    dracut -m "xcat" -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
 else
-    dracut -a "xcat" --no-early-microcode -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
+    dracut -m "xcat" --no-early-microcode -N -f /tmp/xcatgenesis.$$.rfs $KERNELVERSION
 fi
 
 if [ $? -ne 0 ]; then
