@@ -14,22 +14,6 @@ DIR=`readlink -f $DIR`
 BUILDARCH=`uname -m`
 REQUIRED_PACKAGES="vconfig rsyslog rpmdevtools rpm-build screen lldpad mstflint ipmitool pciutils mdadm dosfstools usbutils bind-utils psmisc nmap-ncat ethtool kexec-tools"
 
-# Install required packages
-pkglist=$(rpm -qa)
-for required_package in $REQUIRED_PACKAGES; do
-    if ! echo $pkglist |grep $required_package &>/dev/null; then
-        yum -y install $required_package
-        if [ $? -ne 0 ]; then
-            echo "ERROR: Can not install required package $required_package, make sure EPEL repository is configured"
-            exit 1
-        fi
-    else
-        echo "$required_package already installed"
-    fi
-done
-
-rpmdev-setuptree
-
 #For Openpower
 if [ -z $1 ]; then
     if [ $BUILDARCH = "ppc64le" ]; then
@@ -38,10 +22,29 @@ if [ -z $1 ]; then
     elif [ $BUILDARCH = "ppc64" ]; then
         HOSTOS="fedora26"
     elif [ $BUILDARCH = "x86_64" ]; then
-        yum install efibootmgr bc -y
+        REQUIRED_PACKAGES="$REQUIRED_PACKAGES efibootmgr bc"
         HOSTOS="centos7"
     fi
 fi
+# Install required packages
+pkglist=$(rpm -qa)
+to_install=""
+for required_package in $REQUIRED_PACKAGES; do
+    if ! echo $pkglist |grep $required_package &>/dev/null; then
+        to_install="$to_install $required_package"
+    else
+        echo "$required_package already installed"
+    fi
+done
+if [ -n "$to_install" ]; then
+    yum install -y $to_install
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Can not install required required packages, make sure EPEL repository is configured"
+        exit 1
+    fi
+fi
+
+rpmdev-setuptree
 
 # get the input files for dracut in the right place
 # Fedora 20 ppc64 uses /usr/lib/dracut/modules.d
@@ -53,10 +56,12 @@ else
     DRACUTMODDIR=/usr/lib/dracut/modules.d/
 fi
 
+DRACUTMODS="96chrony 97xcat"
 cd $DIR
 mkdir -p $DRACUTMODDIR/
-cp -a 97xcat $DRACUTMODDIR
-cp -a 96chrony $DRACUTMODDIR
+for mod in $DRACUTMODS; do
+    cp -a $mod $DRACUTMODDIR
+done
 
 mkdir -p /tmp/xcatgenesis.$$/opt/xcat/share/xcat/netboot/genesis/$BUILDARCH/fs
 
@@ -118,4 +123,6 @@ tar jcf ~/rpmbuild/SOURCES/xCAT-genesis-base-$BUILDARCH.tar.bz2 opt
 # build the rpm
 echo Building xCAT-genesis-base rpm from ~/rpmbuild/SOURCES/xCAT-genesis-base-$BUILDARCH.tar.bz2 and $DIR/xCAT-genesis-base.spec ...
 rpmbuild -ba $DIR/xCAT-genesis-base.spec
-rm -rf $DRACUTMODDIR
+for mod in $DRACUTMODS; do
+    rm -rf $DRACUTMODDIR/$mod
+done
