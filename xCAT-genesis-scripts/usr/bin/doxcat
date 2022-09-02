@@ -43,6 +43,7 @@ if [ -r /sys/devices/virtual/dmi/id/product_uuid ]; then
         duid=$duid$octnum
     done
     duid=$duid'";'
+    mkdir -p /var/lib/dhclient/
     echo $duid > /var/lib/dhclient/dhclient6.leases
 fi
 
@@ -229,7 +230,7 @@ else
         fi
     else
         # dracut may already have set up the network
-        if ! ip -f -o a show dev $bootnic|grep -v 'scope link'|grep -q inet; then
+        if ! ip -4 -o a show dev $bootnic|grep -v 'scope link'|grep -q inet; then
             # dracut's network-legacy module uses /tmp/dhclient.foo for its
             # runtime files - if we don't have an IP at this point, kill them
             # and try again
