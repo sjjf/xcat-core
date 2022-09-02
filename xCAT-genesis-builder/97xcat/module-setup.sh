@@ -12,7 +12,7 @@ check() {
 depends() {
     echo \
         network-legacy network kernel-modules kernel-network-modules \
-        kernel-modules-extra terminfo syslog nfs base
+        kernel-modules-extra terminfo syslog base
     return 0
 }
 
