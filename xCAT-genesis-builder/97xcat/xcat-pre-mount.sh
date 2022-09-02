@@ -25,9 +25,9 @@ __ENDL
 echo "xCAT: running doxcat in screen session"
 
 cmdline=$(getcmdline)
-if echo $cmdline |grep grep console=ttyS >/dev/null; then
+if echo $cmdline |grep console=ttyS >/dev/null; then
         while :; do sleep 1; screen -S console -ln screen -x doxcat </dev/tty1 &>/dev/tty1; clear &>/dev/tty1 ; done &
 fi
 while :; do screen -ln < /dev/tty2 &> /dev/tty2 ; done &
 
-while :; do screen -dr doxcat || screen -S doxcat -L -ln doxcat; done
+while :; do screen -dr doxcat </dev/console &>/dev/console || screen -S doxcat -L -ln doxcat </dev/console &>/dev/console ; done
