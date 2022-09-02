@@ -12,7 +12,10 @@ echo "xCAT: getting xcatd IP for syslog"
 xcatd=$(getarg xcatd)
 xcat_ip=${xcatd%:*}
 
+# drop in configuration for the syslog module - the server IP and a more
+# useful set of filters than the default (which is kern.*)
 echo "syslog.server=$xcat_ip" >>/etc/cmdline.d/xcat-cmdline.conf
+echo "*.*" >/tmp/syslog.filters
 
 # this is necessary for dracut to proceed beyond this hook.
 root='initramfs'

@@ -32,12 +32,12 @@ install() {
     inst_multiple \
         wget openssl tar mstflint ipmitool cpio gzip lsmod ethtool modprobe \
         touch echo cut wc bash netstat uniq grep ip hostname /usr/bin/awk \
-        egrep grep dirname expr mount.nfs sshd vi reboot lspci parted screen \
-        mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df vconfig ifenslave ssh-keygen \
-        scp clear dhclient lldpad poweroff hwclock date umount rpm chmod \
-        /sbin/route /sbin/ifconfig /usr/bin/whoami /usr/bin/head /usr/bin/tail \
-        basename ping tr lsusb /usr/share/hwdata/usb.ids efibootmgr lldptool \
-        dmidecode \
+        egrep grep dirname expr mount.nfs sshd vi /usr/libexec/vi reboot lspci \
+        parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df vconfig \
+        ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock date \
+        umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
+        /usr/bin/head /usr/bin/tail basename ping tr lsusb \
+        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode
 
 
     inst "/usr/share/zoneinfo/posix/Zulu"
@@ -612,5 +612,7 @@ install() {
     
     inst_hook cmdline 10 "$moddir/xcat-cmdline.sh"
     inst_hook pre-mount 10 "$moddir/xcat-pre-mount.sh"
+    # install our fixed rsyslogd start script
+    inst_hook initqueue/online 71 "$moddir/xcat-rsyslogd-start.sh"
 }
 
