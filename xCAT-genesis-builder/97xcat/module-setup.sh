@@ -614,7 +614,8 @@ install() {
     inst_hook cmdline 10 "$moddir/xcat-cmdline.sh"
     inst_hook pre-mount 10 "$moddir/xcat-pre-mount.sh"
     # install our fixed rsyslogd start script
-    inst_hook initqueue/online 71 "$moddir/xcat-rsyslogd-start.sh"
+    inst_hook initqueue/online 69 "$moddir/xcat-rsyslogd-start.sh"
+
     inst_rules "$moddir/80-net-name-slot.rules"
 }
 

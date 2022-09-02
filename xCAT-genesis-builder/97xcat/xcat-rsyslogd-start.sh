@@ -50,3 +50,8 @@ if [ "$type" = "rsyslogd" ]; then
         rsyslogd
     fi
 fi
+
+# this is a pain, but it cleans up an annoying error
+if [ -e "$hookdir/initqueue/online/70-rsyslogd-start.sh" ]; then
+    rm -f "$hookdir/initqueue/online/70-rsyslogd-start.sh"
+fi
