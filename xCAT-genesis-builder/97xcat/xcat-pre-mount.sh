@@ -5,6 +5,7 @@
 # This will run before any attempt is made to mount the new root (which
 # doesn't exist), and simply set up and run the xCAT scripts
 
+type getarg > /dev/null 2>&1 || . /lib/dracut-lib.sh
 
 echo PS1="'"'[xCAT Genesis running on \H \w]\$ '"'" > /.bashrc
 echo PS1="'"'[xCAT Genesis running on \H \w]\$ '"'" > /.bash_profile
@@ -21,7 +22,10 @@ qemu:x:107:107:qemu user:/:/sbin/nologin
 chrony:x:995:991::/var/lib/chrony:/sbin/nologin
 __ENDL
 
-if grep -q console=ttyS /proc/cmdline; then
+echo "xCAT: running doxcat in screen session"
+
+cmdline=$(getcmdline)
+if echo $cmdline |grep grep console=ttyS >/dev/null; then
         while :; do sleep 1; screen -S console -ln screen -x doxcat </dev/tty1 &>/dev/tty1; clear &>/dev/tty1 ; done &
 fi
 while :; do screen -ln < /dev/tty2 &> /dev/tty2 ; done &
