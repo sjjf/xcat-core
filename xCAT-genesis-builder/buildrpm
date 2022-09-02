@@ -48,14 +48,15 @@ fi
 # CentOS 7 probably uses /usr/lib/dracut/modules.d also
 if [ -e "/usr/share/dracut/modules.d" ]
 then
-    DRACUTMODDIR=/usr/share/dracut/modules.d/97xcat
+    DRACUTMODDIR=/usr/share/dracut/modules.d/
 else
-    DRACUTMODDIR=/usr/lib/dracut/modules.d/97xcat
+    DRACUTMODDIR=/usr/lib/dracut/modules.d/
 fi
 
 cd $DIR
-mkdir -p $DRACUTMODDIR
-cp -a 97xcat/* $DRACUTMODDIR
+mkdir -p $DRACUTMODDIR/
+cp -a 97xcat $DRACUTMODDIR
+cp -a 96chrony $DRACUTMODDIR
 
 mkdir -p /tmp/xcatgenesis.$$/opt/xcat/share/xcat/netboot/genesis/$BUILDARCH/fs
 

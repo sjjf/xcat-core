@@ -12,7 +12,7 @@ check() {
 depends() {
     echo \
         network-legacy network kernel-modules kernel-network-modules \
-        kernel-modules-extra terminfo syslog base
+        kernel-modules-extra terminfo syslog nfs chrony base
     return 0
 }
 
@@ -36,8 +36,9 @@ install() {
         parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df vconfig \
         ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock date \
         umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
-        /usr/bin/head /usr/bin/tail basename ping tr lsusb \
-        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode
+        /usr/bin/head /usr/bin/tail basename ping tr lsusb logger \
+        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode pidof \
+        reset
 
 
     inst "/usr/share/zoneinfo/posix/Zulu"
