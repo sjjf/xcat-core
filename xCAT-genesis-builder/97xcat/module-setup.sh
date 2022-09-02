@@ -30,15 +30,14 @@ installkernel() {
 # called by dracut
 install() {
     inst_multiple \
-        wget openssl tar mstflint ipmitool cpio gzip lsmod ethtool modprobe \
-        touch echo cut wc bash netstat uniq grep ip hostname /usr/bin/awk \
-        egrep grep dirname expr mount.nfs sshd vi /usr/libexec/vi reboot lspci \
-        parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df vconfig \
-        ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock date \
-        umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
+        wget openssl tar mstflint mstconfig ipmitool cpio gzip lsmod ethtool \
+        modprobe touch echo cut wc bash netstat sort uniq grep ip hostname \
+        /usr/bin/awk egrep grep dirname expr mount.nfs sshd vi /usr/libexec/vi \
+        reboot lspci parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df \
+        vconfig ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock \
+        date umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
         /usr/bin/head /usr/bin/tail basename ping tr lsusb logger \
-        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode pidof \
-        reset
+        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode pidof reset
 
 
     inst "/usr/share/zoneinfo/posix/Zulu"
