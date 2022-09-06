@@ -1,40 +1,42 @@
+#!/bin/bash
+#
 # IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
 #Redhcp, do the xcat part again
 FORCENICS=`cat /restart|awk '{print $2}'`
 rm /restart
 if [ ! -z "$FORCENICS" ]; then
     echo "Forcing down nics aside from $FORCENICS due to discoverynics setting"
-    for pidfile in /var/run/dhclient.*.pid; do
-	NIC=`echo $pidfile|awk -F. '{print $2}'`
-	if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
-		dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
-		rm $pidfile
-		ip link set $NIC down
-	fi
+    for pidfile in $DHCLIENTRUNDIR/dhclient.*.pid; do
+        NIC=`echo $pidfile|awk -F. '{print $2}'`
+        if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
+            dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
+            rm $pidfile
+            ip link set $NIC down
+        fi
     done
-    for pidfile in /var/run/dhclient6.*.pid; do
-	NIC=`echo $pidfile|awk -F. '{print $2}'`
-	if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
-		dhclient -6 -r -1 -pf $pidfile -lf /var/lib/dhclient/dhclient6.leases $NIC
-		rm $pidfile
-		ip link set $NIC down
-	fi
+    for pidfile in $DHCLIENTRUNDIR/dhclient6.*.pid; do
+        NIC=`echo $pidfile|awk -F. '{print $2}'`
+        if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
+            dhclient -6 -r -1 -pf $pidfile -lf $DHCLIENTDIR/dhclient6.leases $NIC
+            rm $pidfile
+            ip link set $NIC down
+        fi
     done
 fi
 WAITING=1
 while [ $WAITING -gt 0 ]; do
-    for pidfile in /var/run/dhclient.*.pid; do
-	NIC=`echo $pidfile|awk -F. '{print $2}'`
-	dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
-	ip -4 addr flush dev $NIC
-	dhclient -cf /etc/dhclient.conf -nw -pf $pidfile $NIC
+    for pidfile in $DHCLIENTRUNDIR/dhclient.*.pid; do
+        NIC=`echo $pidfile|awk -F. '{print $2}'`
+        dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
+        ip -4 addr flush dev $NIC
+        dhclient -cf /etc/dhclient.conf -nw -pf $pidfile $NIC
     done
-    for pidfile in /var/run/dhclient6.*.pid; do
-	NIC=`echo $pidfile|awk -F. '{print $2}'`
-	dhclient -6 -r -1 -pf $pidfile -lf /var/lib/dhclient/dhclient6.leases $NIC
-	ip -6 addr flush dev $NIC  scope global
-	ip -6 addr flush dev $NIC  scope site
-	dhclient -6 -pf $pidfile -nw -lf /var/lib/dhclient/dhclient6.leases $NIC
+    for pidfile in $DHCLIENTRUNDIR/dhclient6.*.pid; do
+        NIC=`echo $pidfile|awk -F. '{print $2}'`
+        dhclient -6 -r -1 -pf $pidfile -lf $DHCLIENTDIR/dhclient6.leases $NIC
+        ip -6 addr flush dev $NIC  scope global
+        ip -6 addr flush dev $NIC  scope site
+        dhclient -6 -pf $pidfile -nw -lf $DHCLIENTDIR/dhclient6.leases $NIC
     done
 
     echo -en "Waiting 10 seconds for DHCP changes to take effect          \r"
@@ -70,11 +72,11 @@ while [ $WAITING -gt 0 ]; do
             fi
         done
         if [ $WAITING -gt 0 ]; then
-	    delay=30
-	    while [ $delay -gt 0 ]; do
-                    echo -en "Not all of the nics $FORCENICS managed to acquire an address, retrying in $delay seconds...    \r"
-	    done
-	    echo "                                                                                                                         \r"
+        delay=30
+        while [ $delay -gt 0 ]; do
+            echo -en "Not all of the nics $FORCENICS managed to acquire an address, retrying in $delay seconds...    \r"
+        done
+        echo "                                                                                                                         \r"
         fi
     fi
 done

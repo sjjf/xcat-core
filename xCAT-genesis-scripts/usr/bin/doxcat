@@ -36,18 +36,6 @@ if [ -z "$bootnic" ]; then
     logger -s -t $log_label -p local4.err "BOOTIF missing, can't detect boot nic"
 fi
 
-if [ -r /sys/devices/virtual/dmi/id/product_uuid ]; then
-    duid='default-duid "\\000\\004';
-    #product_uuid in sysfs fails to cope with endianness of SMBIOS 2.6, unconditionnaly swap.  Technically leads to incorrect DUID in 'older' systems but matches MS behavior
-    for i in `sed -e 's/\(..\)\(..\)\(..\)\(..\)-\(..\)\(..\)-\(..\)\(..\)/\4\3\2\1-\6\5-\8\7/;s/-//g;s/\(..\)/\1 /g' /sys/devices/virtual/dmi/id/product_uuid`; do
-        octnum="\\"`printf "\\%03o" 0x$i`
-        duid=$duid$octnum
-    done
-    duid=$duid'";'
-    mkdir -p /var/lib/dhclient/
-    echo $duid > /var/lib/dhclient/dhclient6.leases
-fi
-
 # NFS services may have been set up by dracut
 [ -z "$(pidof rpcbind)" ] && rpcbind
 [ -z "$(pidof rpc.statd)" ] && rpc.statd
@@ -170,6 +158,42 @@ if ! grep "$XCATMASTER" /etc/rsyslog.conf &>/dev/null ; then
     echo "*.* @$XCATMASTER" >> /etc/rsyslog.conf
 fi
 
+# A lot of stuff later on wants to manage dhclient, however if we're running
+# in a dracut context we can expect to be using the network-legacy dhclient
+# configuration, which uses /tmp as the location for all its runtime files.
+# To better support this case we'll determine if we're in a dracut context and
+# set and export DHCLIENTDIR and DHCLIENTRUNDIR so everything later on can be
+# consistent.
+#
+# Note: if dhclient has exited after successfully setting up the interface it
+# may not still be running, but there will be a lease file - thus we test for
+# the lease file here rather than the pid.
+#
+# Also note: the dhclient default config is /etc/dhcp/dhclient.conf, not
+# /etc/dhclient.conf, so for consistency we need to explicitly specify that
+# in all our invocations.
+DHCLIENTDIR="/var/lib/dhclient"
+DHCLIENTRUNDIR="/var/run"
+if [ -e /tmp/dhclient.$bootnic.lease ]; then
+    DHCLIENTDIR="/tmp"
+    DHCLIENTRUNDIR="/tmp"
+fi
+export DHCLIENTDIR DHCLIENTRUNDIR
+mkdir -p $DHCLIENTDIR
+mkdir -p $DHCLIENTRUNDIR
+
+if [ -r /sys/devices/virtual/dmi/id/product_uuid ]; then
+    duid='default-duid "\\000\\004';
+    #product_uuid in sysfs fails to cope with endianness of SMBIOS 2.6, unconditionnaly swap.  Technically leads to incorrect DUID in 'older' systems but matches MS behavior
+    for i in `sed -e 's/\(..\)\(..\)\(..\)\(..\)-\(..\)\(..\)-\(..\)\(..\)/\4\3\2\1-\6\5-\8\7/;s/-//g;s/\(..\)/\1 /g' /sys/devices/virtual/dmi/id/product_uuid`; do
+        octnum="\\"`printf "\\%03o" 0x$i`
+        duid=$duid$octnum
+    done
+    duid=$duid'";'
+    echo $duid > $DHCLIENTDIR/dhclient6.leases
+fi
+
+
 if [[ -n $hostip && -n $netmask && -n $gateway && -n $bootnic ]]; then
     # doing static ip
     # the device was determined above from the bootif mac, and put in bootnic
@@ -193,8 +217,16 @@ else
         while [ $tries -lt 100 ]; do
             ALLUP_NICS=`ip link show | grep -v "^ " | grep "state UP" | awk '{print $2}' | sed -e 's/:$//'|grep -v lo | sort -n -r`
             for tmp1 in $ALLUP_NICS; do
-                dhclient -cf /etc/dhclient.conf -pf /var/run/dhclient.$tmp1.pid $tmp1 &
-                dhclient -6 -pf /var/run/dhclient6.$tmp1.pid $tmp1 -lf /var/lib/dhclient/dhclient6.leases &
+                dhclient \
+                    -cf /etc/dhclient.conf \
+                    -pf $DHCLIENTRUNDIR/dhclient.$tmp1.pid \
+                    -lf $DHCLIENTDIR/dhclient.$tmp1.lease \
+                    $tmp1 &
+                dhclient -6 \
+                    -cf /etc/dhclient.conf \
+                    -pf $DHCLIENTRUNDIR/dhclient6.$tmp1.pid \
+                    -lf $DHCLIENTDIR/dhclient6.leases
+                    $tmp1 &
                 #bootnic=$tmp1
                 #break
             done
@@ -232,20 +264,19 @@ else
     else
         # dracut may already have set up the network
         if ! ip -4 -o a show dev $bootnic|grep -v 'scope link'|grep -q inet; then
-            # dracut's network-legacy module uses /tmp/dhclient.foo for its
-            # runtime files - if we don't have an IP at this point, kill them
-            # and try again
-            if [ -e /tmp/dhclient.$bootnic.pid ] && ps $(cat /tmp/dhclient.$bootnic.pid) &>/dev/null; then
-                kill $(cat /tmp/dhclient.$bootnic.pid)
-            fi
-            dhclient -cf /etc/dhclient.conf -pf /var/run/dhclient.$bootnic.pid $bootnic &
+            dhclient \
+                -cf /etc/dhclient.conf \
+                -pf $DHCLIENTRUNDIR/dhclient.$bootnic.pid \
+                $DHCLIENTDIR/dhclient.$bootnic.lease \
+                $bootnic &
             #we'll kick of IPv6 and IPv4 on all nics, but not wait for them to come up unless doing discovery, to reduce
             #chances that we'll perform a partial discovery
             #in other scenarios where downed non-bootnics cause issues, will rely on retries to fix things up
-            if [ -e /tmp/dhclient6.$bootnic.pid ] && ps $(cat /tmp/dhclient6.$bootnic.pid) &>/dev/null; then
-                kil $(cat /tmp/dhclient.$bootnic.pid)
-            fi
-            dhclient -6 -pf /var/run/dhclient6.$bootnic.pid $bootnic -lf /var/lib/dhclient/dhclient6.leases &
+            dhclient -6 \
+                -cf /etc/dhclient.conf \
+                -pf $DHCLIENTRUNDIR/dhclient6.$bootnic.pid \
+                -lf $DHCLIENTDIR/dhclient6.leases \
+                $bootnic &
             gripeiter=101
             logger -s -t $log_label -p local4.info "Acquiring network addresses.."
             while ! ip -4 -o a show dev $bootnic|grep -v 'scope link'|grep -q inet; do
@@ -261,8 +292,26 @@ else
         NICSTOBRINGUP=`ip link|grep mtu|grep -v LOOPBACK|grep -v $bootnic|grep -v usb|grep -v NO-CARRIER|grep -v ,UP|awk -F: '{print $2}'`
         export NICSTOBRINGUP
         for nic in $NICSTOBRINGUP; do
-            (while ! ethtool $nic | grep Link\ detected|grep yes > /dev/null; do sleep 5; done; dhclient -cf /etc/dhclient.conf -pf /var/run/dhclient.$nic.pid $nic ) &
-            (while ! ethtool $nic | grep Link\ detected|grep yes > /dev/null; do sleep 5; done; dhclient -cf /etc/dhclient.conf -6 -pf /var/run/dhclient6.$nic.pid -lf /var/lib/dhclient/dhclient6.leases $nic ) &
+            (
+                while ! ethtool $nic | grep Link\ detected|grep yes > /dev/null; do
+                    sleep 5
+                done;
+                dhclient \
+                    -cf /etc/dhclient.conf \
+                    -pf $DHCLIENTRUNDIR/dhclient.$nic.pid \
+                    -lf $DHCLIENTDIR/dhclient.$nic.lease \
+                    $nic
+            ) &
+            (
+                while ! ethtool $nic | grep Link\ detected|grep yes > /dev/null; do
+                    sleep 5
+                done
+                dhclient -6 \
+                    -cf /etc/dhclient.conf \
+                    -pf $DHCLIENTRUNDIR/dhclient6.$nic.pid \
+                    -lf $DHCLIENTDIR/dhclient6.leases \
+                    $nic
+            ) &
         done
     fi
 fi
