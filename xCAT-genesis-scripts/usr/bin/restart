@@ -2,41 +2,63 @@
 #
 # IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
 #Redhcp, do the xcat part again
-FORCENICS=`cat /restart|awk '{print $2}'`
+FORCENICS=$(awk '{print $2}' </restart)
 rm /restart
-if [ ! -z "$FORCENICS" ]; then
+if [ -n "$FORCENICS" ]; then
     echo "Forcing down nics aside from $FORCENICS due to discoverynics setting"
-    for pidfile in $DHCLIENTRUNDIR/dhclient.*.pid; do
-        NIC=`echo $pidfile|awk -F. '{print $2}'`
-        if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
-            dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
-            rm $pidfile
-            ip link set $NIC down
+    for pidfile in "$DHCLIENTRUNDIR"/dhclient.*.pid; do
+        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+        if [ -n "$NIC" ] && echo "$NIC" | grep -E -v "$FORCENICS"; then
+            dhclient -r -1 \
+                -cf /etc/dhclient.conf \
+                -pf "$pidfile" \
+                -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
+                "$NIC"
+            rm "$pidfile"
+            ip link set "$NIC" down
         fi
     done
-    for pidfile in $DHCLIENTRUNDIR/dhclient6.*.pid; do
-        NIC=`echo $pidfile|awk -F. '{print $2}'`
-        if [ ! -z "$NIC" ] && echo $NIC | egrep -v "$FORCENICS"; then
-            dhclient -6 -r -1 -pf $pidfile -lf $DHCLIENTDIR/dhclient6.leases $NIC
-            rm $pidfile
-            ip link set $NIC down
+    for pidfile in "$DHCLIENTRUNDIR"/dhclient6.*.pid; do
+        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+        if [ -n "$NIC" ] && echo "$NIC" | grep -E -v "$FORCENICS"; then
+            dhclient -6 -r -1 \
+                -cf /etc/dhclient.conf \
+                -pf "$pidfile" \
+                -lf "$DHCLIENTDIR"/dhclient6.leases \
+                "$NIC"
+            rm "$pidfile"
+            ip link set "$NIC" down
         fi
     done
 fi
 WAITING=1
 while [ $WAITING -gt 0 ]; do
-    for pidfile in $DHCLIENTRUNDIR/dhclient.*.pid; do
-        NIC=`echo $pidfile|awk -F. '{print $2}'`
-        dhclient -r -1 -cf /etc/dhclient.conf -pf $pidfile $NIC
-        ip -4 addr flush dev $NIC
-        dhclient -cf /etc/dhclient.conf -nw -pf $pidfile $NIC
+    for pidfile in "$DHCLIENTRUNDIR"/dhclient.*.pid; do
+        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+        dhclient -r -1 \
+            -cf /etc/dhclient.conf \
+            -pf "$pidfile" \
+            -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
+            "$NIC"
+        ip -4 addr flush dev "$NIC"
+        dhclient -nw \
+            -cf /etc/dhclient.conf \
+            -pf "$pidfile" \
+            -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
+            "$NIC"
     done
-    for pidfile in $DHCLIENTRUNDIR/dhclient6.*.pid; do
-        NIC=`echo $pidfile|awk -F. '{print $2}'`
-        dhclient -6 -r -1 -pf $pidfile -lf $DHCLIENTDIR/dhclient6.leases $NIC
-        ip -6 addr flush dev $NIC  scope global
-        ip -6 addr flush dev $NIC  scope site
-        dhclient -6 -pf $pidfile -nw -lf $DHCLIENTDIR/dhclient6.leases $NIC
+    for pidfile in "$DHCLIENTRUNDIR"/dhclient6.*.pid; do
+        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+        dhclient -6 -r -1 \
+            -pf "$pidfile" \
+            -lf "$DHCLIENTDIR/dhclient6.leases" \
+            "$NIC"
+        ip -6 addr flush dev "$NIC"  scope global
+        ip -6 addr flush dev "$NIC"  scope site
+        dhclient -6 -nw \
+            -pf "$pidfile" \
+            -lf "$DHCLIENTDIR/dhclient6.leases" \
+            "$NIC"
     done
 
     echo -en "Waiting 10 seconds for DHCP changes to take effect          \r"
@@ -47,15 +69,15 @@ while [ $WAITING -gt 0 ]; do
 
     # restart rsyslog after dhclient
     if [ -f /var/run/syslogd.pid ]; then
-        kill -TERM `cat /var/run/syslogd.pid`
+        kill -TERM "$(cat /var/run/syslogd.pid)"
     fi
     if [ -f /var/run/rsyslogd.pid ]; then
-        kill -TERM `cat /var/run/rsyslogd.pid`
+        kill -TERM "$(cat /var/run/rsyslogd.pid)"
     fi
     sleep 3
 
-    RSYSLOGD_VERSION=`rsyslogd -v | grep -m1 "rsyslogd" | tr -s ' ' | cut -d" " -f2 | cut -d"." -f1`
-    if [ $RSYSLOGD_VERSION -ge 8 ]; then
+    RSYSLOGD_VERSION=$(rsyslogd -v | grep -m1 "rsyslogd" | tr -s ' ' | cut -d" " -f2 | cut -d"." -f1)
+    if [ "$RSYSLOGD_VERSION" -ge 8 ]; then
         # Newer versions of rsyslogd do not support -c flag anymore
         /sbin/rsyslogd
     else
@@ -63,11 +85,11 @@ while [ $WAITING -gt 0 ]; do
     fi
 
     WAITING=0
-    if [ ! -z "$FORCENICS" ]; then
+    if [ -n "$FORCENICS" ]; then
         #for nic in `ifconfig|grep HWaddr|awk '{print $1}'|egrep "$FORCENICS"`; do
-        for nic in `ip  -oneline link show |grep -i ether |awk -F ':' '{print $2}'|grep -o "[^ ]\+\( \+[^ ]\+\)*"|egrep "$FORCENICS"`; do
+        for nic in $(ip  -o link show |grep -i ether |awk -F ':' '{print $2}'|grep -o "[^ ]\+\( \+[^ ]\+\)*"|grep -E "$FORCENICS"); do
         #    if ! ifconfig $nic|grep "inet addr" > /dev/null; then
-            if ! ip -4 -oneline addr show $nic|grep -i inet > /dev/null; then
+            if ! ip -4 -o addr show "$nic"|grep -i inet > /dev/null; then
                 WAITING=1
             fi
         done
@@ -76,7 +98,7 @@ while [ $WAITING -gt 0 ]; do
         while [ $delay -gt 0 ]; do
             echo -en "Not all of the nics $FORCENICS managed to acquire an address, retrying in $delay seconds...    \r"
         done
-        echo "                                                                                                                         \r"
+        echo -e "                                                                                                                         \r"
         fi
     fi
 done
