@@ -74,12 +74,12 @@ export PUBKEY
 
 logger -s -t $log_label -p local4.info "Creating /var/lib/lldpad file..."
 mkdir -p /var/lib/lldpad
-cat <<EOF >/var/lib/lldpad
+cat <<EOF >/var/lib/lldpad/lldpad.conf
 lldp :
 {
 EOF
 for iface in $(ip link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
-    cat <<EOF >>/var/lib/lldpad
+    cat <<EOF >>/var/lib/lldpad/lldpad.conf
     $iface :
     {
         tlvid00000006 :
