@@ -14,6 +14,11 @@ DIR=`readlink -f $DIR`
 BUILDARCH=`uname -m`
 REQUIRED_PACKAGES="vconfig rsyslog rpmdevtools rpm-build screen lldpad mstflint ipmitool pciutils mdadm dosfstools usbutils bind-utils psmisc nmap-ncat ethtool kexec-tools"
 
+if grep 'REPLACE_CURRENT_VERSION' xCAT-genesis-base.spec &>/dev/null; then
+        echo "Please set version at top of xCAT-genesis-base.spec file"
+        exit 1
+fi
+
 #For Openpower
 if [ -z $1 ]; then
     if [ $BUILDARCH = "ppc64le" ]; then
