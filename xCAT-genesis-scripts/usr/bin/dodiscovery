@@ -160,8 +160,19 @@ EOF
             echo "<platform>$PLATFORM</platform>" >> /tmp/discopacket
     fi
 
-    LANCHAN=$(ipmitool sol info 2>/dev/null|awk '/Payload Channel/{print $4}')
-    IsStatic=$(ipmitool lan print "$LANCHAN" | grep 'IP Address Source' | grep 'Static')
+    # the sol info payload channel doesn't seem to be saying what it seems like
+    # it should be saying, so this is an alternative approach that Seems To
+    # Work For Me(tm)
+    #LANCHAN=$(ipmitool sol info 2>/dev/null|awk '/Payload Channel/{print $4}')
+    #IsStatic=$(ipmitool lan print "$LANCHAN" | grep 'IP Address Source' | grep 'Static')
+    for i in 0 1 2; do
+        if ipmitool sol info $i &>/dev/null; then
+            LANCHAN=$i
+            break
+        fi
+    done
+    # if the bmc address is set by the BIOS we want to capture that here too
+    IsStatic=$(ipmitool lan print "$LANCHAN" |grep 'IP Address Source' |grep -E '(Static|BIOS)')
     if [ "$IsStatic" ]; then
         BMCIPADDR=$(ipmitool lan print "$LANCHAN" | grep 'IP Address' | grep -v 'IP Address Source' | cut -d ":" -f2 | sed 's/ //')
         if [ "$BMCIPADDR" ]; then
