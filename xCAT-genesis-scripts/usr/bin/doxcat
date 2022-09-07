@@ -68,8 +68,9 @@ logger -s -t $log_label -p local4.info "Generating private key..."
 openssl genrsa -out /etc/xcat/privkey.pem 1024 >& /dev/null
 logger -s -t $log_label -p local4.info "Done"
 PUBKEY=$(openssl rsa -in /etc/xcat/privkey.pem -pubout 2> /dev/null|grep -v "PUBLIC KEY")
-#shellcheck disable=2001
-PUBKEY=$(echo "$PUBKEY"|sed -e 's/ //g')
+# note: if we use $(echo "$PUBKEY"...) here bash leaves the newlines, breaking sed
+#shellcheck disable=2001,2086
+PUBKEY=$(echo $PUBKEY|sed -e 's/ //g')
 export PUBKEY
 
 logger -s -t $log_label -p local4.info "Creating /var/lib/lldpad file..."
