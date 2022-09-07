@@ -73,7 +73,7 @@ PUBKEY=$(openssl rsa -in /etc/xcat/privkey.pem -pubout 2> /dev/null|grep -v "PUB
 PUBKEY=$(echo $PUBKEY|sed -e 's/ //g')
 export PUBKEY
 
-logger -s -t $log_label -p local4.info "Creating /var/lib/lldpad file..."
+logger -s -t $log_label -p local4.info "Creating /var/lib/lldpad/lldpad.conf file..."
 mkdir -p /var/lib/lldpad
 cat <<EOF >/var/lib/lldpad/lldpad.conf
 lldp :
