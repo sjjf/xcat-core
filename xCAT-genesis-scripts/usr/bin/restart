@@ -6,7 +6,8 @@ FORCENICS=$(awk '{print $2}' </restart)
 rm /restart
 if [ -n "$FORCENICS" ]; then
     echo "Forcing down nics aside from $FORCENICS due to discoverynics setting"
-    for pidfile in "$DHCLIENTRUNDIR"/dhclient.*.pid; do
+    dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
+    for pidfile in $dhclients; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
         if [ -n "$NIC" ] && echo "$NIC" | grep -E -v "$FORCENICS"; then
             dhclient -r -1 \
@@ -18,7 +19,8 @@ if [ -n "$FORCENICS" ]; then
             ip link set "$NIC" down
         fi
     done
-    for pidfile in "$DHCLIENTRUNDIR"/dhclient6.*.pid; do
+    dhclient6s=$(find "$DHCLIENTRUNDIR" -name 'dhclient6.*.pid' 2>/dev/null)
+    for pidfile in $dhclient6s; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
         if [ -n "$NIC" ] && echo "$NIC" | grep -E -v "$FORCENICS"; then
             dhclient -6 -r -1 \
@@ -33,7 +35,8 @@ if [ -n "$FORCENICS" ]; then
 fi
 WAITING=1
 while [ $WAITING -gt 0 ]; do
-    for pidfile in "$DHCLIENTRUNDIR"/dhclient.*.pid; do
+    dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
+    for pidfile in $dhclients; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
         dhclient -r -1 \
             -cf /etc/dhclient.conf \
@@ -47,7 +50,8 @@ while [ $WAITING -gt 0 ]; do
             -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
             "$NIC"
     done
-    for pidfile in "$DHCLIENTRUNDIR"/dhclient6.*.pid; do
+    dhclient6s=$(find "$DHCLIENTRUNDIR" -name 'dhclient6.*.pid' 2>/dev/null)
+    for pidfile in $dhclient6s; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
         dhclient -6 -r -1 \
             -pf "$pidfile" \
