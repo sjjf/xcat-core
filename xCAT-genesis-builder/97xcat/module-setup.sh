@@ -21,7 +21,7 @@ installkernel() {
     local _kver=$(uname -r)
     if [ -e "/lib/modules/$_kver/modules.dep" ]; then
         for line in $(cat "/lib/modules/$_kver/modules.dep" |awk -F: '{print $1}'); do
-            kmod=$(basename $line)
+            kmod=$(basename "$line")
             instmods $kmod
         done
     fi
@@ -616,5 +616,18 @@ install() {
     inst_hook initqueue/online 69 "$moddir/xcat-rsyslogd-start.sh"
 
     inst_rules "$moddir/80-net-name-slot.rules"
+
+    # copy user entries over for a few things
+    #
+    # Note that chrony and the NFS related users are handled by other modules
+    if ! grep -q '^sshd:' "$initdir/etc/passwd" ; then
+        grep '^sshd:' "$dracutsysrootdir"/etc/passwd >> "$initdir/etc/passwd"
+        grep '^sshd:' "$dracutsysrootdir"/etc/group >> "$initdir/etc/group"
+    fi
+    if ! grep -q '^qemu:' "$initdir/etc/passwd" ; then
+        grep '^qemu:' "$dracutsysrootdir"/etc/passwd >> "$initdir/etc/passwd"
+        grep '^qemu:' "$dracutsysrootdir"/etc/group >> "$initdir/etc/group"
+    fi
+
 }
 
