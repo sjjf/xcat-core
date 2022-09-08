@@ -26,6 +26,17 @@ qemu:x:107:107:qemu user:/:/sbin/nologin
 chrony:x:995:991::/var/lib/chrony:/sbin/nologin
 __ENDL
 
+# since we're referring to shadow in our passwd file, we may as well set this
+# up as well
+cat <<"__ENDL" >>/etc/shadow
+root:!::0:99999:7:::
+sshd:!::0:99999:7:::
+rpc:!::0:99999:7:::
+rpcuser:!::0:99999:7:::
+qemu:!::0:99999:7:::
+chrony:!::0:99999:7:::
+__ENDL
+
 echo "xCAT: running doxcat in screen session"
 
 cmdline=$(getcmdline)
