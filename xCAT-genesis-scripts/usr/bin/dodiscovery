@@ -326,8 +326,8 @@ EOF
     #record the time when the "findme request is sent to master"
     reqtime=$(date +%s)
     #cat /tmp/discopacket
-    logger -s -t $log_label -p local4.info "Sleeping 5 seconds..."
-    sleep 5
+    logger -s -t $log_label -p local4.info "Sleeping 15 seconds..."
+    sleep 15
 done
 logger -s -t $log_label -p local4.info "Restart network interfaces..."
 /bin/restart
