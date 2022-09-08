@@ -274,7 +274,8 @@ EOF
             fi
             for switchaddr in $(lldptool -i "$dev" -n -t -V mngAddr|awk '/IP/ {print $2}'); do
                 if [ -n "$switchaddr" ]; then
-                echo "    <switchaddr>$switchaddr</switchaddr>" >> /tmp/discopacket
+                    echo "    <switchaddr>$switchaddr</switchaddr>" >> /tmp/discopacket
+                fi
             done
             myswitchdesc=$(lldptool -n -i "$dev" -t -V sysDesc|sed -e '/^[^[:space:]]/d; s/^[[:space:]]\+//')
             if [ -n "$myswitchdesc" ]; then
