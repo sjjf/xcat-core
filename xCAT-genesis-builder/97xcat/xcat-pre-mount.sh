@@ -12,7 +12,11 @@ echo PS1="'"'[xCAT Genesis running on \H \w]\$ '"'" > /.bash_profile
 mkdir -p /etc/ssh
 mkdir -p /var/tmp/
 mkdir -p /var/empty/sshd
-sed -i '/^root:x/d' /etc/passwd
+# note that this regex is only going to match in hostonly mode - otherwise
+# /etc/shadow is empty and so is the password entry. So instead we need to
+# get a bit more brutal . . .
+#sed -i '/^root:x/d' /etc/passwd
+sed -i '/^root:/d' /etc/passwd
 cat >>/etc/passwd <<"__ENDL"
 root:x:0:0::/:/bin/bash
 sshd:x:30:30:SSH User:/var/empty/sshd:/sbin/nologin
