@@ -2,10 +2,13 @@
 #
 # IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
 #Redhcp, do the xcat part again
+
+log_label="xcat.genesis.restart"
 FORCENICS=$(awk '{print $2}' </restart)
+logger -s -t $log_label -p local4.info "Restarting network configuration. FORCENICS=$FORCENICS"
 rm /restart
 if [ -n "$FORCENICS" ]; then
-    echo "Forcing down nics aside from $FORCENICS due to discoverynics setting"
+    logger -s -t $log_label -p local4.info "Forcing down nics aside from $FORCENICS due to discoverynics setting"
     dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
     for pidfile in $dhclients; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
@@ -35,6 +38,7 @@ if [ -n "$FORCENICS" ]; then
 fi
 WAITING=1
 while [ $WAITING -gt 0 ]; do
+    logger -s -t $log_label -p local4.info "Releasing any existing leases"
     dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
     for pidfile in $dhclients; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
@@ -50,6 +54,7 @@ while [ $WAITING -gt 0 ]; do
             -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
             "$NIC"
     done
+    logger -s -t $log_label -p local4.info "Starting up DHCP clients"
     dhclient6s=$(find "$DHCLIENTRUNDIR" -name 'dhclient6.*.pid' 2>/dev/null)
     for pidfile in $dhclient6s; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
@@ -72,6 +77,7 @@ while [ $WAITING -gt 0 ]; do
     done
 
     # restart rsyslog after dhclient
+    logger -s -t $log_label -p local4.info "Restarting rsyslogd"
     if [ -f /var/run/syslogd.pid ]; then
         kill -TERM "$(cat /var/run/syslogd.pid)"
     fi
@@ -90,9 +96,7 @@ while [ $WAITING -gt 0 ]; do
 
     WAITING=0
     if [ -n "$FORCENICS" ]; then
-        #for nic in `ifconfig|grep HWaddr|awk '{print $1}'|egrep "$FORCENICS"`; do
-        for nic in $(ip  -o link show |grep -i ether |awk -F ':' '{print $2}'|grep -o "[^ ]\+\( \+[^ ]\+\)*"|grep -E "$FORCENICS"); do
-        #    if ! ifconfig $nic|grep "inet addr" > /dev/null; then
+        for nic in $(ip -o link show |grep -i ether |awk -F ': ' '{print $2}'|grep -E "$FORCENICS"); do
             if ! ip -4 -o addr show "$nic"|grep -i inet > /dev/null; then
                 WAITING=1
             fi

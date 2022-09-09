@@ -337,8 +337,6 @@ EOF
     res=$?
     if [ $res -eq 0 ]; then
         logger -s -t $log_label -p local4.info "minixcatd terminated cleanly."
-    elif [ $res -eq 127 ]; then
-        logger -s -t $log_label -p local4.info "minixcatd terminated early."
     else
         logger -s -t $log_label -p local4.info "minixcatd terminated with exit status $res"
     fi

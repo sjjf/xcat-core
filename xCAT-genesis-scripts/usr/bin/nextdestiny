@@ -1,7 +1,9 @@
 #!/bin/bash
+log_label="xcat.genesis.nextdestiny"
 if [ -z "$XCATDEST" ]; then
 	XCATDEST=$1
 fi
+logger -s -t $log_label -p local4.info "Getting next destiny"
 echo "<xcatrequest>
 <command>nextdestiny</command>
 <callback_port>300</callback_port>
@@ -10,11 +12,10 @@ if [ -f /tmp/destiny.xml ]; then rm /tmp/destiny.xml; fi
 timer=0
 while [ ! -f /tmp/destiny.xml ]; do
 	while [ $timer -gt 0 ]; do
-		echo -en  "No destiny command received, retrying in $timer seconds  \r" >&2
+		logger -s -t $log_label -p local4.warning "No destiny command received, retrying in $timer seconds"
 		sleep 1
 		timer=$(($timer-1));
 	done
-	echo "                                                         " >&2;
 	if [ -f /etc/xcat/cert.pem -a -f /etc/xcat/certkey.pem ]; then #use client cert if available
 		cat /tmp/destreq.xml | openssl s_client -key /etc/xcat/certkey.pem -cert /etc/xcat/cert.pem -connect $XCATDEST -quiet 2> /dev/null > /tmp/destiny.xml
 	else
@@ -28,9 +29,12 @@ if [ -z "$DESTINY" ]; then
     ERROR=`grep '<error>' /tmp/destiny.xml | awk -F'>' '{print $2}'|awk -F'<' '{print $1}'`
     if [ ! -z "$ERROR" ]; then
         DESTINY="error=$ERROR"
+		logger -s -t $log_label -p local4.warning "Error getting next destiny: $ERROR"
     else
         DESTINY="error=No destiny command received"
+		logger -s -t $log_label -p local4.warning "No destiny command received"
     fi
 fi
 rm /tmp/destiny.xml
+logger -s -t $log_label -p local4.info "Next destiny: $DESTINY"
 echo $DESTINY

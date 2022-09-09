@@ -366,6 +366,7 @@ fi
 DEVICE=$bootnic
 export DEVICE
 
+logger -s -t $log_label -p local4.info "Initial destiny: $destiny"
 if [ "$destiny" != "discover" ]; then #we aren't discoverying, we probably can and should get a cert
     logger -s -t $log_label -p local4.info "Getting initial certificate --> $XCATMASTER:$XCATPORT"
     /bin/getcert "$XCATMASTER:$XCATPORT"

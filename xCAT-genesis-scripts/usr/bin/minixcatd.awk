@@ -10,7 +10,6 @@ BEGIN {
                     print "restarting bootstrap process" |& listener
                     quit="yes"
                     system("echo \"" $0 "\" > /restart")
-                    close(listener)
                     system("rm -rf /processing")
                     system("logger -s -t 'xcat.genesis.minixcatd' -p local4.info 'The request is processed by xCAT master successfully.'")
                 }else if(match($0,"processing")){
