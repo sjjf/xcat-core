@@ -329,19 +329,20 @@ EOF
     #cat /tmp/discopacket
     logger -s -t $log_label -p local4.info "Sleeping 5 seconds..."
     sleep 5
-done
-# minixcatd terminates once it hears back from the xcat server, so waiting
-# for it here allows us to ensure we don't proceed until xcat has
-# responded
-wait $minixcatd_job
-res=$?
-if [ $res -eq 0 ]; then
-    logger -s -t $log_label -p local4.info "minixcatd terminated cleanly."
-elif [ $res -eq 127 ]; then
-    logger -s -t $log_label -p local4.info "minixcatd terminated early."
-else
-    logger -s -t $log_label -p local4.info "minixcatd terminated with exit status $res"
-fi
 
+    # minixcatd terminates once it hears back from the xcat server, so waiting
+    # for it here allows us to ensure we don't proceed until xcat has
+    # responded
+    wait $minixcatd_job
+    res=$?
+    if [ $res -eq 0 ]; then
+        logger -s -t $log_label -p local4.info "minixcatd terminated cleanly."
+    elif [ $res -eq 127 ]; then
+        logger -s -t $log_label -p local4.info "minixcatd terminated early."
+    else
+        logger -s -t $log_label -p local4.info "minixcatd terminated with exit status $res"
+    fi
+
+done
 logger -s -t $log_label -p local4.info "Restart network interfaces..."
 /bin/restart
