@@ -84,6 +84,14 @@ for iface in $(ip -o link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
     lldptool -T -i "$iface" -V sysName enableTx=yes
     lldptool -T -i "$iface" -V sysDesc enableTx=yes
     lldptool -T -i "$iface" -V portDesc enableTx=yes
+    ipaddr=$(ip -4 -o a s dev "$iface"|sed -e 's/^.*inet \([0-9.]\+\).*$/\1/'|head -1)
+    ip6addr=$(ip -6 -o a s dev "$iface" scope global |sed -e 's/^.*inet6 \([0-9a-f:]\+\).*$/\1/'|head -1)
+    if [ -n "$ipaddr" ]; then
+        lldptool -T -i "$iface" -V mngAddr ipv4="$ipaddr"
+    fi
+    if [ -n "$ip6addr" ]; then
+        lldptool -T -i "$iface" -V mngAddr ipv6="$ip6addr"
+    fi
 done
 logger -s -t $log_label -p local4.info "lldp configured."
 
