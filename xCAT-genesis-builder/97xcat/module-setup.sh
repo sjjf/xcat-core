@@ -36,7 +36,7 @@ install() {
         reboot lspci parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df \
         vconfig ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock \
         date umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
-        /usr/bin/head /usr/bin/tail basename ping tr lsusb logger \
+        /usr/bin/head /usr/bin/tail basename ping tr lsusb logger sysctl \
         /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode pidof reset
 
 
