@@ -313,6 +313,7 @@ logger -s -t $log_label -p local4.info "lldpad started."
 
 logger -s -t $log_label -p local4.info "Configuring lldp on all interfaces..."
 for iface in $(ip -o link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
+    logger -s -t $log_label -p local4.info "Enabling lldp on $iface..."
     lldptool -L -i "$iface" adminStatus=rxtx
     lldptool -T -i "$iface" -V sysName enableTx=yes
     lldptool -T -i "$iface" -V sysDesc enableTx=yes
@@ -320,9 +321,11 @@ for iface in $(ip -o link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
     ipaddr=$(ip -4 -o a s dev "$iface" scope global |sed -e 's/^.*inet \([0-9.]\+\).*$/\1/'|head -1)
     ip6addr=$(ip -6 -o a s dev "$iface" scope global |sed -e 's/^.*inet6 \([0-9a-f:]\+\).*$/\1/'|head -1)
     if [ -n "$ipaddr" ]; then
+        logger -s -t $log_label -p local4.info "Setting mngAddr ipv4=$ipaddr on $iface..."
         lldptool -T -i "$iface" -V mngAddr ipv4="$ipaddr"
     fi
     if [ -n "$ip6addr" ]; then
+        logger -s -t $log_label -p local4.info "Setting mngAddr ipv6=$ip6addr on $iface..."
         lldptool -T -i "$iface" -V mngAddr ipv6="$ip6addr"
     fi
 done

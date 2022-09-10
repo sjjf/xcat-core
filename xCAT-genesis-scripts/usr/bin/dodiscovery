@@ -77,6 +77,8 @@ while [ ! -r /restart ]; do
         continue
     fi
 
+
+    logger -s -t $log_label -p local4.info "Collecting platform information ..."
     MTM=unknown
     SERIAL=unknown
     ARCH=unknown
@@ -126,6 +128,7 @@ while [ ! -r /restart ]; do
     # The MEMORY will look like this: 32868920
     MEMORY=$(grep MemTotal /proc/meminfo |awk '{printf "%.0fMB\n", $2/1024}')
 
+    logger -s -t $log_label -p local4.info "Collecting disk information ..."
     # The DISKSIZE will look like this: sda:960GB,sdb:960GB,sdc:480GB,sdd:480GB,nvme0n1:1490GB,nvme01n1:1490GB (sorted by major,minor)
     DISKSIZE=$(grep -v name /proc/partitions |sort -g -k 1,2 |awk 'BEGIN{sep=""} /[^0-9]$/{printf("%s%s:%.0fGB", sep, $4, $3/1024^2) ; sep=","}')
     DISKSIZE_NVME=$(grep -v name /proc/partitions |sort -g -k 1,2 |awk 'BEGIN{sep=""} /nvme[0-9]+n[0-9]+$/{printf("%s%s:%.0fGB", sep, $4, $3/1024^2) ; sep=","}')
@@ -133,7 +136,7 @@ while [ ! -r /restart ]; do
         DISKSIZE="$DISKSIZE,$DISKSIZE_NVME"
     fi
 
-    logger -s -t $log_label -p local4.info "Beginning echo information to discovery packet file..."
+    logger -s -t $log_label -p local4.info "Assembling discovery packet file..."
     cat <<EOF > /tmp/discopacket
 <xcatrequest>
 <command>findme</command>
@@ -167,6 +170,8 @@ EOF
             echo "<platform>$PLATFORM</platform>" >> /tmp/discopacket
     fi
 
+
+    logger -s -t $log_label -p local4.info "Collecting BMC information ..."
     # the sol info payload channel doesn't seem to be saying what it seems like
     # it should be saying, so this is an alternative approach that Seems To
     # Work For Me(tm)
@@ -197,6 +202,7 @@ EOF
         echo "<bmcinband>1</bmcinband>" >> /tmp/discopacket
     fi
 
+    logger -s -t $log_label -p local4.info "Collecting network device information ..."
     #so we have some cases where DMI table explictly records every function number, and some where only first function is enumerated
     #so for each onboard device, we record it.  If it is also the first function, we'll seek out other function numbers and append
     #if that other function number does not show up in its own dmi type 41 record
@@ -217,6 +223,7 @@ EOF
     MAC_OF_FIRST_UP_NIC=unknown
     #TODO: downed nics, also examine /sys/bus/pci/*/ for more network class devices that might not have driver suppert
     for dev in $(ip -o link|grep ether|grep UP|grep -v usb|awk -F ': ' '{print $2}'); do
+        logger -s -t $log_label -p local4.info "Assembling network device information for $dev ..."
         FIRMDESC=""
         ONBOARDINDEX=""
         DRIVER=$(grep DRIVER "/sys/class/net/$dev/device/uevent"|awk -F= '{print $2}')
@@ -273,6 +280,7 @@ EOF
         # device - note that we're checking /this/ device, not the neighbour,
         # so this should succeed as long as lldpad has started listening on it
         if lldptool -i "$dev" -t -V sysName &>/dev/null; then
+            logger -s -t $log_label -p local4.info "Assembling lldp information for $dev ..."
             myswitch=$(lldptool -n -i "$dev" -t -V sysName|awk '/^[[:space:]]+/ {print $1}')
             if [ -n "$myswitch" ]; then
                 echo "    <switchname>$myswitch</switchname>" >> /tmp/discopacket
@@ -299,6 +307,7 @@ EOF
         echo "<uuid>$UUID</uuid>" >> /tmp/discopacket
     fi
 
+    logger -s -t $log_label -p local4.info "Finalising and signing packet ..."
     #this is not secure to use by itself, switch sourced pubkey for security
     cat <<EOF >>/tmp/discopacket
 <xcatpubkey>$PUBKEY</xcatpubkey>
