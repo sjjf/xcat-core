@@ -19,7 +19,7 @@ mkdir -p /var/empty/sshd
 sed -i '/^root:/d' /etc/passwd
 echo 'root:x:0:0::/:/bin/bash' >>/etc/passwd
 if ! grep -q '^root:' /etc/shadow ; then
-        echo 'root:!::0:99999:7:::' >>/etc/shadow
+        echo 'root:::0:99999:7:::' >>/etc/shadow
 fi
 
 echo "xCAT: running doxcat in screen session"
