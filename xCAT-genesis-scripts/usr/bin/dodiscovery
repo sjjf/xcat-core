@@ -285,11 +285,10 @@ EOF
             if [ -n "$myswitch" ]; then
                 echo "    <switchname>$myswitch</switchname>" >> /tmp/discopacket
             fi
-            for switchaddr in $(lldptool -i "$dev" -n -t -V mngAddr|awk '/IP/ {print $2}'); do
-                if [ -n "$switchaddr" ]; then
-                    echo "    <switchaddr>$switchaddr</switchaddr>" >> /tmp/discopacket
-                fi
-            done
+            switchaddr=$(lldptool -i "$dev" -n -t -V mngAddr|awk '/IP/ {print $2}'|head -1); do
+            if [ -n "$switchaddr" ]; then
+                echo "    <switchaddr>$switchaddr</switchaddr>" >> /tmp/discopacket
+            fi
             myswitchdesc=$(lldptool -n -i "$dev" -t -V sysDesc|sed -e '/^[^[:space:]]/d; s/^[[:space:]]\+//')
             if [ -n "$myswitchdesc" ]; then
                 echo "    <switchdesc>$myswitchdesc</switchdesc>" >> /tmp/discopacket
