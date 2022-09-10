@@ -56,7 +56,7 @@ done
 if [ $timewaiting != 700 ] && [ $timewaiting -gt 450 ]; then
     logger -s -t $log_label -p local4.warning "Obtained an IP address $NICSGETTINGADDR but it took $timewaiting cycles, you may want to check the spanning tree configuration in the switch."
 fi
-logger -s -t $log_label -p local4.info "Network configuration complete, commencing transmit of discovery packets"
+logger -s -t $log_label -p local4.info "Network configuration complete, information for discovery packets"
 
 #time to make our packet...
 while [ ! -r /restart ]; do
@@ -285,7 +285,7 @@ EOF
             if [ -n "$myswitch" ]; then
                 echo "    <switchname>$myswitch</switchname>" >> /tmp/discopacket
             fi
-            switchaddr=$(lldptool -i "$dev" -n -t -V mngAddr|awk '/IP/ {print $2}'|head -1); do
+            switchaddr=$(lldptool -i "$dev" -n -t -V mngAddr|awk '/IP/ {print $2}'|head -1)
             if [ -n "$switchaddr" ]; then
                 echo "    <switchaddr>$switchaddr</switchaddr>" >> /tmp/discopacket
             fi
