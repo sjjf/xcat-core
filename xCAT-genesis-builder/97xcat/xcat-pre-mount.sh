@@ -5,6 +5,7 @@
 # This will run before any attempt is made to mount the new root (which
 # doesn't exist), and simply set up and run the xCAT scripts
 
+# shellcheck disable=1091
 type getarg > /dev/null 2>&1 || . /lib/dracut-lib.sh
 
 echo PS1="'"'[xCAT Genesis running on \H \w]\$ '"'" > /.bashrc
