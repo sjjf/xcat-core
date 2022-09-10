@@ -73,28 +73,6 @@ PUBKEY=$(openssl rsa -in /etc/xcat/privkey.pem -pubout 2> /dev/null|grep -v "PUB
 PUBKEY=$(echo $PUBKEY|sed -e 's/ //g')
 export PUBKEY
 
-logger -s -t $log_label -p local4.info "Bringing up lldpad..."
-mkdir -p /var/lib/lldpad
-lldpad -d
-logger -s -t $log_label -p local4.info "lldpad started."
-
-logger -s -t $log_label -p local4.info "Configuring lldp on all interfaces..."
-for iface in $(ip -o link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
-    lldptool -L -i "$iface" adminStatus=rxtx
-    lldptool -T -i "$iface" -V sysName enableTx=yes
-    lldptool -T -i "$iface" -V sysDesc enableTx=yes
-    lldptool -T -i "$iface" -V portDesc enableTx=yes
-    ipaddr=$(ip -4 -o a s dev "$iface"|sed -e 's/^.*inet \([0-9.]\+\).*$/\1/'|head -1)
-    ip6addr=$(ip -6 -o a s dev "$iface" scope global |sed -e 's/^.*inet6 \([0-9a-f:]\+\).*$/\1/'|head -1)
-    if [ -n "$ipaddr" ]; then
-        lldptool -T -i "$iface" -V mngAddr ipv4="$ipaddr"
-    fi
-    if [ -n "$ip6addr" ]; then
-        lldptool -T -i "$iface" -V mngAddr ipv6="$ip6addr"
-    fi
-done
-logger -s -t $log_label -p local4.info "lldp configured."
-
 # Caclulate the broadcast address of a given IP address and mask.
 bcastcalc(){
     read -r oct1 oct2 oct3 oct4 << HERE
@@ -267,7 +245,8 @@ else
         fi
     else
         # dracut may already have set up the network
-        if ! ip -4 -o a show dev "$bootnic"|grep -v 'scope link'|grep -q inet; then
+        if ! ip -4 -o a show dev "$bootnic" scope global |grep -q inet; then
+            logger -s -t $log_label -p local4.info "No interfaces configured yet - bringing up $bootnic"
             dhclient \
                 -cf /etc/dhclient.conf \
                 -pf "$DHCLIENTRUNDIR/dhclient.$bootnic.pid" \
@@ -282,8 +261,8 @@ else
                 -lf $DHCLIENTDIR/dhclient6.leases \
                 "$bootnic" &
             gripeiter=101
-            logger -s -t $log_label -p local4.info "Acquiring network addresses.."
-            while ! ip -4 -o a show dev "$bootnic"|grep -v 'scope link'|grep -q inet; do
+            logger -s -t $log_label -p local4.info "Acquiring network addresses on $bootnic.."
+            while ! ip -4 -o a show dev "$bootnic" scope global |grep -q inet; do
                 sleep 0.1
                 if [ $gripeiter = 1 ]; then
                     logger -s -t $log_label -p local4.info "It seems to be taking a while to acquire an IPv4 address, you may want to check spanning tree..."
@@ -295,6 +274,7 @@ else
         # don't try to bring up a nic with NO-CARRIER
         NICSTOBRINGUP=$(ip -o link show|grep -v LOOPBACK|grep -v "$bootnic"|grep -v usb|grep -v NO-CARRIER|grep -v ,UP|awk -F: '{print $2}')
         export NICSTOBRINGUP
+        logger -s -t $log_label -p local4.info "Bringing up additional interfaces..."
         for nic in $NICSTOBRINGUP; do
             (
                 while ! ethtool "$nic"| grep Link\ detected|grep yes > /dev/null; do
@@ -323,6 +303,30 @@ fi
 openssl genrsa -out /etc/xcat/certkey.pem 4096 > /dev/null 2>&1 &
 
 logger -s -t $log_label -p local4.info "Acquired IPv4 address on $bootnic"
+
+# Note: moved this below the IP setup, since by this point any interfaces that
+# are going to come up should be up, allowing lldpad to do its thing.
+logger -s -t $log_label -p local4.info "Bringing up lldpad..."
+mkdir -p /var/lib/lldpad
+lldpad -d
+logger -s -t $log_label -p local4.info "lldpad started."
+
+logger -s -t $log_label -p local4.info "Configuring lldp on all interfaces..."
+for iface in $(ip -o link |grep -v 'LOOPBACK'|awk -F ': ' '{print $2}'); do
+    lldptool -L -i "$iface" adminStatus=rxtx
+    lldptool -T -i "$iface" -V sysName enableTx=yes
+    lldptool -T -i "$iface" -V sysDesc enableTx=yes
+    lldptool -T -i "$iface" -V portDesc enableTx=yes
+    ipaddr=$(ip -4 -o a s dev "$iface" scope global |sed -e 's/^.*inet \([0-9.]\+\).*$/\1/'|head -1)
+    ip6addr=$(ip -6 -o a s dev "$iface" scope global |sed -e 's/^.*inet6 \([0-9a-f:]\+\).*$/\1/'|head -1)
+    if [ -n "$ipaddr" ]; then
+        lldptool -T -i "$iface" -V mngAddr ipv4="$ipaddr"
+    fi
+    if [ -n "$ip6addr" ]; then
+        lldptool -T -i "$iface" -V mngAddr ipv6="$ip6addr"
+    fi
+done
+logger -s -t $log_label -p local4.info "lldp configured."
 
 if [ -e /usr/sbin/ntpd ]; then
     logger -s -t $log_label -p local4.info "Starting ntpd..."

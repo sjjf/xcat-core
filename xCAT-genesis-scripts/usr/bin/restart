@@ -2,20 +2,28 @@
 #
 # IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
 #Redhcp, do the xcat part again
+#
+# Note that there's no guarantee that either the pid or lease files will still
+# exist by the time we run, so where possible we use the `dynamic` flag from
+# the ip(8) output to get a list of interfaces with dynamically allocated
+# addresses.
 
 log_label="xcat.genesis.restart"
 FORCENICS=$(awk '{print $2}' </restart)
 logger -s -t $log_label -p local4.info "Restarting network configuration. FORCENICS=$FORCENICS"
+mapfile -t active_leases < <(find "$DHCLIENTDIR" -name 'dhclient.*.lease' 2>/dev/null)
+mapfile -t dynamic_links < <(ip -4 -o a s scope global|grep dynamic|awk '{print $2}')
+logger -s -t $log_label -p local4.info "Active leases found: ${active_leases[*]}"
+logger -s -t $log_label -p local4.info "Dynamic links found: ${dynamic_links[*]}"
+
 rm /restart
 if [ -n "$FORCENICS" ]; then
     logger -s -t $log_label -p local4.info "Forcing down nics aside from $FORCENICS due to discoverynics setting"
-    dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
-    for pidfile in $dhclients; do
-        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+    for NIC in "${dynamic_links[@]}"; do
         if [ -n "$NIC" ] && echo "$NIC" | grep -E -v "$FORCENICS"; then
             dhclient -r -1 \
                 -cf /etc/dhclient.conf \
-                -pf "$pidfile" \
+                -pf "$DHCLIENTRUNDIR/dhclient.$NIC.pid" \
                 -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
                 "$NIC"
             rm "$pidfile"
@@ -37,24 +45,27 @@ if [ -n "$FORCENICS" ]; then
     done
 fi
 WAITING=1
+mapfile -t dynamic_links < <(ip -4 -o a s scope global|grep dynamic|awk '{print $2}')
+logger -s -t $log_label -p local4.info "Remaining dynamic links: ${dynamic_links[*]}"
 while [ $WAITING -gt 0 ]; do
-    logger -s -t $log_label -p local4.info "Releasing any existing leases"
-    dhclients=$(find "$DHCLIENTRUNDIR" -name 'dhclient.*.pid' 2>/dev/null)
-    for pidfile in $dhclients; do
-        NIC=$(echo "$pidfile"|awk -F. '{print $2}')
+    logger -s -t $log_label -p local4.info "Renewing existing DHCP4 leases"
+    mapfile -t dynamic_links < <(ip -4 -o a s scope global|grep dynamic|awk '{print $2}')
+    for NIC in "${dynamic_links[@]}"; do
+        logger -s -t $log_label -p local4.debug "Releasing $NIC"
         dhclient -r -1 \
             -cf /etc/dhclient.conf \
-            -pf "$pidfile" \
+            -pf "$DHCLIENTRUNDIR/dhclient.$NIC.pid" \
             -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
             "$NIC"
         ip -4 addr flush dev "$NIC"
+        logger -s -t $log_label -p local4.debug "Renewing $NIC"
         dhclient -nw \
             -cf /etc/dhclient.conf \
-            -pf "$pidfile" \
+            -pf "$DHCLIENTRUNDIR/dhclient.$NIC.pid" \
             -lf "$DHCLIENTDIR/dhclient.$NIC.lease" \
             "$NIC"
     done
-    logger -s -t $log_label -p local4.info "Starting up DHCP clients"
+    logger -s -t $log_label -p local4.info "Renewing existing DHCP6 leases"
     dhclient6s=$(find "$DHCLIENTRUNDIR" -name 'dhclient6.*.pid' 2>/dev/null)
     for pidfile in $dhclient6s; do
         NIC=$(echo "$pidfile"|awk -F. '{print $2}')
