@@ -56,7 +56,11 @@ fi
 if [ ! -e /usr/share/empty.sshd ]; then
     mkdir -p /usr/share/empty.sshd
 fi
-echo 'Protocol 2' >> /etc/ssh/sshd_config
+cat <<EOF >>/etc/ssh/sshd_config
+Protocol 2
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+EOF
 /usr/sbin/sshd
 mkdir -p /etc/xcat
 mkdir -p /etc/pki/tls
