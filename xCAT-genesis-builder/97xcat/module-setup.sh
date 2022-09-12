@@ -1,7 +1,5 @@
 #!/usr/bin/bash
 
-#!/usr/bin/bash
-
 # called by dracut
 check() {
     # do not add this module by default
@@ -18,12 +16,13 @@ depends() {
 
 #called by dracut
 installkernel() {
-    local _kver=$(uname -r)
+    local _kver
+    _kver=$(uname -r)
     if [ -e "/lib/modules/$_kver/modules.dep" ]; then
-        for line in $(cat "/lib/modules/$_kver/modules.dep" |awk -F: '{print $1}'); do
+        while read -r line; do
             kmod=$(basename "$line")
-            instmods $kmod
-        done
+            instmods "$kmod"
+        done < <(awk -F: '{print $1}' < "/lib/modules/$_kver/modules.dep")
     fi
 }
 
@@ -607,9 +606,10 @@ install() {
     inst "/usr/share/zoneinfo/posix/Chile/Continental"
 
 
+    # shellcheck disable=2154
     inst "$moddir/xcatroot" "/sbin/xcatroot"
     inst "$moddir/dhclient.conf" "/etc/dhclient.conf"
-    
+
     inst_hook cmdline 10 "$moddir/xcat-cmdline.sh"
     inst_hook pre-mount 10 "$moddir/xcat-pre-mount.sh"
     # install our fixed rsyslogd start script
@@ -620,6 +620,7 @@ install() {
     # copy user entries over for a few things
     #
     # Note that chrony and the NFS related users are handled by other modules
+    # shellcheck disable=2154
     if ! grep -q '^sshd:' "$initdir/etc/passwd" ; then
         grep '^sshd:' "$dracutsysrootdir"/etc/passwd >> "$initdir/etc/passwd"
         grep '^sshd:' "$dracutsysrootdir"/etc/group >> "$initdir/etc/group"
