@@ -29,15 +29,26 @@ installkernel() {
 # called by dracut
 install() {
     inst_multiple \
-        wget openssl tar mstflint mstconfig ipmitool cpio gzip lsmod ethtool \
-        modprobe touch echo cut wc bash netstat sort uniq grep ip hostname \
-        /usr/bin/awk egrep grep dirname expr mount.nfs sshd vi /usr/libexec/vi \
-        reboot lspci parted screen mkfs mkfs.ext4 mkfs.xfs xfs_db mkswap df \
-        vconfig ifenslave ssh-keygen scp clear dhclient lldpad poweroff hwclock \
-        date umount rpm chmod /sbin/route /sbin/ifconfig /usr/bin/whoami \
-        /usr/bin/head /usr/bin/tail basename ping tr lsusb logger sysctl find \
-        /usr/share/hwdata/usb.ids efibootmgr lldptool dmidecode pidof reset
+        wget openssl tar ipmitool cpio gzip lsmod ethtool modprobe touch \
+        echo cut wc bash netstat sort uniq grep ip hostname /usr/bin/awk \
+        egrep grep dirname expr mount.nfs sshd ssh-keygen scp \
+        vi /usr/libexec/vi reboot parted screen mkfs mkfs.ext4 \
+        mkfs.xfs xfs_db mkswap df vconfig ifenslave clear dhclient \
+        lldpad lldptool poweroff hwclock date umount rpm chmod /sbin/route \
+        /sbin/ifconfig /usr/bin/whoami /usr/bin/head /usr/bin/tail basename \
+        ping tr logger sysctl find efibootmgr dmidecode pidof reset
 
+    # lspci and lsusb have some necessary data files
+    inst_multiple \
+        lspci lsusb \
+        /usr/share/hwdata/usb.ids \
+        /usr/share/hwdata/pci.ids
+
+    # mstflint and mstconfig have some necessary data files
+    inst_multiple \
+        mstflint mstconfig \
+        /usr/share/mstflint/mlxconfig_dbs/mlxconfig_host.db \
+        /usr/share/mstflint/mlxconfig_dbs/mlxconfig_switch.db
 
     inst "/usr/share/zoneinfo/posix/Zulu"
     inst "/usr/share/zoneinfo/posix/GMT-0"
